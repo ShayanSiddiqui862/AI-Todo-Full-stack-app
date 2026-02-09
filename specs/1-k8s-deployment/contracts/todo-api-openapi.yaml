@@ -1,0 +1,383 @@
+openapi: 3.0.3
+info:
+  title: Todo API
+  description: API for managing todos in the Todo application
+  version: 1.0.0
+servers:
+  - url: http://todo.local/api
+    description: Local development server
+paths:
+  /v1/todos:
+    get:
+      summary: Get all todos
+      description: Retrieve a list of all todos with optional filtering
+      parameters:
+        - name: status
+          in: query
+          description: Filter todos by status
+          required: false
+          schema:
+            type: string
+            enum: [all, active, completed]
+        - name: limit
+          in: query
+          description: Limit the number of returned todos
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: offset
+          in: query
+          description: Offset for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: A list of todos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  todos:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Todo'
+                  total:
+                    type: integer
+                  offset:
+                    type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create a new todo
+      description: Add a new todo to the list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTodoRequest'
+      responses:
+        '201':
+          description: Todo created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/todos/{id}:
+    get:
+      summary: Get a specific todo
+      description: Retrieve a specific todo by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The ID of the todo to retrieve
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The requested todo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        '404':
+          description: Todo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update a todo
+      description: Update the details of an existing todo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The ID of the todo to update
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTodoRequest'
+      responses:
+        '200':
+          description: Todo updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Todo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete a todo
+      description: Remove a specific todo by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The ID of the todo to delete
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Todo deleted successfully
+        '404':
+          description: Todo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/users:
+    post:
+      summary: Register a new user
+      description: Create a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterUserRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/auth/login:
+    post:
+      summary: User login
+      description: Authenticate a user and return a JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Todo:
+      type: object
+      required:
+        - id
+        - title
+        - completed
+        - userId
+        - createdAt
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the todo
+        title:
+          type: string
+          description: The title of the todo
+          maxLength: 255
+        description:
+          type: string
+          description: Optional detailed description of the todo
+          maxLength: 1000
+        completed:
+          type: boolean
+          description: Whether the todo is completed
+        userId:
+          type: string
+          description: ID of the user who owns this todo
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the todo was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the todo was last updated
+    CreateTodoRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          description: The title of the todo
+          maxLength: 255
+        description:
+          type: string
+          description: Optional detailed description of the todo
+          maxLength: 1000
+    UpdateTodoRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          description: The updated title of the todo
+          maxLength: 255
+        description:
+          type: string
+          description: Updated detailed description of the todo
+          maxLength: 1000
+        completed:
+          type: boolean
+          description: Updated completion status
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - username
+        - createdAt
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the user
+        email:
+          type: string
+          format: email
+          description: The user's email address
+        username:
+          type: string
+          description: The user's username
+          maxLength: 50
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the user was created
+    RegisterUserRequest:
+      type: object
+      required:
+        - email
+        - username
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: The user's email address
+        username:
+          type: string
+          description: The user's username
+          maxLength: 50
+        password:
+          type: string
+          format: password
+          description: The user's password
+          minLength: 8
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: The user's email address
+        password:
+          type: string
+          format: password
+          description: The user's password
+    LoginResponse:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - user
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token
+        refreshToken:
+          type: string
+          description: JWT refresh token
+        user:
+          $ref: '#/components/schemas/User'
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Optional error code
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []

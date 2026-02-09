@@ -1,0 +1,28 @@
+# kubectl-gemini configuration
+# This configuration enables AI-assisted kubectl commands
+
+# Configuration for kubectl-gemini plugin
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubectl-gemini-config
+  namespace: kube-system
+data:
+  # Configuration settings for kubectl-gemini
+  config.yaml: |
+    # Model to use for generating kubectl commands
+    model: gemini-2.5-flash
+
+    # API endpoint for the AI service
+    api_endpoint: https://generativelanguage.googleapis.com/v1beta
+
+    # Timeout for API requests (in seconds)
+    timeout: 30
+
+    # Additional configuration options
+    options:
+      # Whether to show explanations for generated commands
+      show_explanations: true
+
+      # Whether to dry-run commands before executing
+      dry_run_default: true

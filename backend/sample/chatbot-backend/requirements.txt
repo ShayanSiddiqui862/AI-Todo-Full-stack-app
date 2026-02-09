@@ -1,0 +1,36 @@
+# 1. Use the standard PyPI for almost everything
+--index-url https://pypi.org/simple
+
+# 2. Add the PyTorch CPU index as a SECONDary source
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# 3. Force torch to use the CPU index explicitly
+torch>=2.0.0 --index-url https://download.pytorch.org/whl/cpu
+
+# 4. Now list your AI and RAG tools
+sentence-transformers==5.2.0
+openai==2.11.0
+openai-agents==0.6.3
+langchain==1.1.3
+qdrant-client==1.16.2
+
+# 5. Core Backend Utilities
+fastapi==0.124.4
+uvicorn[standard]
+python-dotenv==1.2.1
+python-multipart==0.0.20
+asyncpg==0.31.0
+bcrypt==4.0.1
+passlib[bcrypt]==1.7.4
+PyJWT==2.10.1
+
+# 6. Windows-specific (Ignored on Linux/Hugging Face)
+pywin32==311; sys_platform == 'win32'
+
+# 7. Let Pip resolve these without pinning (to avoid AnyIO/AnnotatedDoc errors)
+httpx
+pydantic>=2.0.0
+pydantic-settings
+PyYAML
+tqdm
+transformers

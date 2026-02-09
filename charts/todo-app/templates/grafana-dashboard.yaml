@@ -1,0 +1,181 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-todo-app
+  namespace: "{{ .Release.Namespace }}" # assuming a monitoring namespace exists
+  labels:
+    grafana_dashboard: "1"
+data:
+  todo-app-dashboard.json: |-
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Todo Application Dashboard",
+        "tags": ["todo-app", "kubernetes"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Frontend Pod Count",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "sum(kube_pod_info{namespace=\"todo-ns\", pod=~\"todo-app-frontend.*\"})",
+                "legendFormat": "Frontend Pods"
+              }
+            ],
+            "options": {
+              "colorMode": "value",
+              "graphMode": "area",
+              "justifyMode": "auto",
+              "orientation": "auto",
+              "reduceOptions": {
+                "calcs": ["lastNotNull"],
+                "fields": "",
+                "values": false
+              },
+              "textMode": "auto"
+            }
+          },
+          {
+            "id": 2,
+            "title": "Backend Pod Count",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "sum(kube_pod_info{namespace=\"todo-ns\", pod=~\"todo-app-backend.*\"})",
+                "legendFormat": "Backend Pods"
+              }
+            ],
+            "options": {
+              "colorMode": "value",
+              "graphMode": "area",
+              "justifyMode": "auto",
+              "orientation": "auto",
+              "reduceOptions": {
+                "calcs": ["lastNotNull"],
+                "fields": "",
+                "values": false
+              },
+              "textMode": "auto"
+            }
+          },
+          {
+            "id": 3,
+            "title": "Frontend CPU Usage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{namespace=\"todo-ns\", pod=~\"todo-app-frontend.*\", container!=\"POD\", container!=\"\"}[5m])",
+                "legendFormat": "{{ "{{" }}pod}}"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "CPU Cores",
+                "show": true
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "title": "Backend CPU Usage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{namespace=\"todo-ns\", pod=~\"todo-app-backend.*\", container!=\"POD\", container!=\"\"}[5m])",
+                "legendFormat": "{{ "{{" }}pod}}"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "CPU Cores",
+                "show": true
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "title": "Frontend Memory Usage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+            "targets": [
+              {
+                "expr": "container_memory_working_set_bytes{namespace=\"todo-ns\", pod=~\"todo-app-frontend.*\", container!=\"POD\", container!=\"\"}",
+                "legendFormat": "{{ "{{" }}pod}}"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Memory",
+                "show": true
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Backend Memory Usage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+            "targets": [
+              {
+                "expr": "container_memory_working_set_bytes{namespace=\"todo-ns\", pod=~\"todo-app-backend.*\", container!=\"POD\", container!=\"\"}",
+                "legendFormat": "{{ "{{" }}pod}}"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Memory",
+                "show": true
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "title": "HTTP Request Rate",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{namespace=\"todo-ns\"}[5m])) by (service)",
+                "legendFormat": "{{ "{{" }}service}}"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Requests/sec",
+                "show": true
+              }
+            ]
+          },
+          {
+            "id": 8,
+            "title": "HTTP Request Duration",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace=\"todo-ns\"}[5m])) by (le, service))",
+                "legendFormat": "{{ "{{" }}service}} 95th percentile"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Duration (seconds)",
+                "show": true
+              }
+            ]
+          }
+        ],
+        "time": {
+          "from": "now-6h",
+          "to": "now"
+        },
+        "refresh": "5s"
+      }
+    }

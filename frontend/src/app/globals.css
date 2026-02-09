@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+:root {
+  --background: #000000; /* Pure black background */
+  --foreground: #ffffff;
+  --glass-bg: rgba(255, 255, 255, 0.05); /* Glassmorphism effect */
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --gradient-start: #3b82f6; /* Blue */
+  --gradient-end: #a855f7;   /* Purple */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-glass-bg: var(--glass-bg);
+  --color-glass-border: var(--glass-border);
+  --color-gradient-start: var(--gradient-start);
+  --color-gradient-end: var(--gradient-end);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans);
+  font-size: 16px; /* Base body size as per spec */
+}
+
+/* Focus Mode Styles */
+body.focus-mode main > *:not(:first-child) {
+  display: none;
+}
+
+body.focus-mode .focus-mode-content {
+  display: block;
+  margin: 0 auto;
+  max-width: 600px;
+  padding: 2rem;
+}
+
+/* Glassmorphism utility classes */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+/* Gradient utility */
+.gradient-bg {
+  background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

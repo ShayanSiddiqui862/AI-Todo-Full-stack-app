@@ -1,0 +1,165 @@
+# kagent deployment configuration
+# This configuration sets up an agentic monitoring system for automated scaling and troubleshooting
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kagent
+  namespace: kube-system
+  labels:
+    app: kagent
+spec:
+  selector:
+    matchLabels:
+      app: kagent
+  template:
+    metadata:
+      labels:
+        app: kagent
+    spec:
+      hostPID: true  # Required for monitoring host processes
+      hostNetwork: true  # Required for monitoring network metrics
+      serviceAccountName: kagent
+      containers:
+      - name: kagent
+        image: kagent:latest
+        imagePullPolicy: Always
+        securityContext:
+          privileged: true  # Required for system-level monitoring
+        env:
+        - name: CLUSTER_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: KAGENT_LOG_LEVEL
+          value: "info"
+        - name: KAGENT_CONFIG_PATH
+          value: "/etc/kagent/config.yaml"
+        volumeMounts:
+        - name: dockersock
+          mountPath: /var/run/docker.sock
+        - name: sysfs
+          mountPath: /sys
+        - name: rootfs
+          mountPath: /rootfs
+        - name: config-volume
+          mountPath: /etc/kagent/
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+      volumes:
+      - name: dockersock
+        hostPath:
+          path: /var/run/docker.sock
+      - name: sysfs
+        hostPath:
+          path: /sys
+      - name: rootfs
+        hostPath:
+          path: /
+      - name: config-volume
+        configMap:
+          name: kagent-config
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kagent
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kagent
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "pods", "services", "namespaces", "events"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+  verbs: ["get", "list", "watch", "patch", "update"]
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kagent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kagent
+subjects:
+- kind: ServiceAccount
+  name: kagent
+  namespace: kube-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kagent-config
+  namespace: kube-system
+data:
+  config.yaml: |
+    # kagent configuration
+    cluster_name: "focusflow-minikube-cluster"
+    
+    # Monitoring settings
+    monitoring:
+      interval: 30s  # How often to collect metrics
+      metrics:
+        - cpu_usage
+        - memory_usage
+        - disk_io
+        - network_traffic
+        - pod_status
+    
+    # Auto-scaling policies
+    autoscaling:
+      enabled: true
+      policies:
+        # Scale up if CPU > 80%
+        - metric: cpu_usage
+          threshold: 80
+          action: scale_up
+          condition: greater_than
+          
+        # Scale down if CPU < 30% for 5 minutes
+        - metric: cpu_usage
+          threshold: 30
+          action: scale_down
+          condition: less_than
+          duration: 300s  # 5 minutes
+    
+    # Troubleshooting settings
+    troubleshooting:
+      enabled: true
+      rules:
+        # Restart pods that are in CrashLoopBackOff
+        - condition: "status.phase == 'Failed' or status.reason == 'CrashLoopBackOff'"
+          action: restart_pod
+          
+        # Alert if disk usage > 85%
+        - condition: "disk_usage > 85"
+          action: alert_admin
+          
+        # Scale up if memory pressure detected
+        - condition: "memory_pressure == true"
+          action: scale_up

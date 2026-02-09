@@ -1,0 +1,20 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: kafka-pubsub
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+  - name: brokers
+    value: "kafka:9092"  # For local dev with docker-compose
+  - name: consumerGroup
+    value: "todo-service"
+  - name: clientID
+    value: "todo-chatbot"
+  - name: authType
+    value: "none"
+  - name: maxMessageBytes
+    value: 1000000
+  - name: consumeRetryInterval
+    value: "100ms"

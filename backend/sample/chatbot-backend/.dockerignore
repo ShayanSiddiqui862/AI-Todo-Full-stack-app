@@ -1,0 +1,39 @@
+# 1. Python specific
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 2. Virtual Environments (Very important to exclude!)
+.venv/
+venv/
+ENV/
+env/
+
+# 3. Local Secrets & Configuration
+.env
+.env.local
+.env.*
+secrets.json
+
+# 4. Git & Version Control
+.git/
+.gitignore
+.github/
+
+# 5. OS Generated Files
+.DS_Store
+Thumbs.db
+
+# 6. Large Data/Model Files (Only if they are stored locally)
+# We don't want to upload local Qdrant data or local model weights
+qdrant_storage/
+models/
+data/*.pdf
+data/*.txt
+
+# 7. Local Docker files
+docker-compose.yml
+docker-compose.override.yml
