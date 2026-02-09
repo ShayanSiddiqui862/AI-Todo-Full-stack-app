@@ -1,5 +1,5 @@
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import ARRAY, String as sa_String
+from sqlalchemy import ARRAY, String as sa_String, Column
 from typing import Optional, List
 from datetime import datetime
 
@@ -38,7 +38,7 @@ class Task(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     # New fields for advanced features
     priority: str = Field(default="medium", max_length=10)  # low, medium, high
-    tags: List[str] = Field(default=None, sa_column=Field(ARRAY(sa_String)))  # e.g., ["work", "personal"]
+    tags: List[str] = Field(default=None, sa_column=Column(ARRAY(sa_String)))  # e.g., ["work", "personal"]
     due_date: Optional[datetime] = None
     remind_at: Optional[datetime] = None
     recurrence_type: str = Field(default="none", max_length=20)  # none, daily, weekly, monthly
