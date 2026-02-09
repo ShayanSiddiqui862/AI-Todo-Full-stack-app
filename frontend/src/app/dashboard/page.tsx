@@ -7,27 +7,24 @@ import TaskCard from '../../components/task/TaskCard';
 import TaskActionModal from '../../components/task/TaskActionModal';
 import FocusModeToggle from '../../components/dashboard/FocusModeToggle';
 import api from '../../lib/api';
+import { Task } from '../../types/task';
 
-// Define the task type
-interface Task {
-  id: string;
-  title: string;
-  completed: boolean;
-  dueDate?: string;
-  category?: string;
-  createdAt: string;
-  scheduled_time?: string;
-}
-
+// Interface for API response
 interface ApiTaskResponse {
   id: number;
   title: string;
   completed: boolean;
   description?: string;
   created_at: string;
+  updated_at?: string;
+  priority?: string;
+  tags?: string[];
   due_date?: string;
-  category?: string;
+  remind_at?: string;
+  recurrence_type?: string;
+  recurrence_interval?: number;
   scheduled_time?: string;
+  category?: string;
 }
 
 const DashboardPage = () => {
@@ -41,6 +38,22 @@ const DashboardPage = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const mapApiTaskToTask = (apiTask: ApiTaskResponse): Task => ({
+    id: apiTask.id.toString(),
+    title: apiTask.title,
+    description: apiTask.description,
+    completed: apiTask.completed,
+    priority: (apiTask.priority || 'medium') as 'low' | 'medium' | 'high',
+    tags: apiTask.tags || [],
+    dueDate: apiTask.due_date,
+    remindAt: apiTask.remind_at,
+    recurrenceType: (apiTask.recurrence_type || 'none') as 'none' | 'daily' | 'weekly' | 'monthly',
+    recurrenceInterval: apiTask.recurrence_interval || 1,
+    createdAt: apiTask.created_at,
+    scheduled_time: apiTask.scheduled_time,
+    category: apiTask.category
+  });
+
   // Load tasks from the backend API
   useEffect(() => {
     const loadTasks = async () => {
@@ -50,9 +63,10 @@ const DashboardPage = () => {
         const response = await api.getTasks();
 
         if (response.success && response.data) {
-          setTasks(response.data as Task[]);
+          const mappedTasks = (response.data as ApiTaskResponse[]).map(mapApiTaskToTask);
+          setTasks(mappedTasks);
           // Also save to offline storage for offline access
-          api.saveTasksOffline(response.data as Task[]);
+          api.saveTasksOffline(mappedTasks);
         } else {
           // If API fails, try offline storage
           const offlineTasks = await api.getTasksOffline();
@@ -96,16 +110,9 @@ const DashboardPage = () => {
       const response = await api.createTask(taskData);
 
       if (response.success && response.data) {
-        // Add the new task to the local state
-        const newTaskItem = {
-          id: (response.data as ApiTaskResponse).id.toString(),
-          title: (response.data as ApiTaskResponse).title,
-          completed: (response.data as ApiTaskResponse).completed,
-          createdAt: (response.data as ApiTaskResponse).created_at || new Date().toISOString(),
-          dueDate: (response.data as ApiTaskResponse).due_date,
-          category: (response.data as ApiTaskResponse).category,
-          scheduled_time: (response.data as ApiTaskResponse).scheduled_time,
-        };
+        const apiTask = response.data as ApiTaskResponse;
+        const newTaskItem = mapApiTaskToTask(apiTask);
+        
         setTasks(prev => [newTaskItem, ...prev]);
         setNewTask('');
         setScheduledTime('');
@@ -114,10 +121,14 @@ const DashboardPage = () => {
         api.saveTasksOffline([newTaskItem, ...tasks]);
       } else {
         // If API fails, add to local state temporarily
-        const localTask = {
+        const localTask: Task = {
           id: Date.now().toString(),
           title: newTask,
           completed: false,
+          priority: 'medium',
+          tags: [],
+          recurrenceType: 'none',
+          recurrenceInterval: 1,
           createdAt: new Date().toISOString(),
           scheduled_time: scheduledTimeISO,
         };
@@ -129,10 +140,14 @@ const DashboardPage = () => {
       }
     } catch (error) {
       console.error('Error creating task:', error);
-      const localTask = {
+      const localTask: Task = {
         id: Date.now().toString(),
         title: newTask,
         completed: false,
+        priority: 'medium',
+        tags: [],
+        recurrenceType: 'none',
+        recurrenceInterval: 1,
         createdAt: new Date().toISOString(),
         scheduled_time: scheduledTimeISO,
       };
@@ -146,11 +161,16 @@ const DashboardPage = () => {
 
   const toggleTaskCompletion = async (id: string) => {
     try {
-      const response = await api.toggleTaskComplete(Number(id));
+      // Backend expects number ID
+      const numId = parseInt(id);
+      if (isNaN(numId)) return;
+
+      const response = await api.toggleTaskComplete(numId);
 
       if (response.success && response.data) {
+        const updatedApiTask = response.data as ApiTaskResponse;
         const updatedTasks = tasks.map(t =>
-          t.id === id ? { ...t, completed: (response.data as ApiTaskResponse).completed } : t
+          t.id === id ? { ...t, completed: updatedApiTask.completed } : t
         );
         setTasks(updatedTasks);
         api.saveTasksOffline(updatedTasks);

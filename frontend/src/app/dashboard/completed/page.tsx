@@ -6,15 +6,24 @@ import { useAuth } from '../../../contexts/AuthContext';
 import GlassCard from '../../../components/ui/GlassCard';
 import TaskCard from '../../../components/task/TaskCard';
 import api from '../../../lib/api';
+import { Task } from '../../../types/task';
 
-// Define the task type
-interface Task {
+// Interface for API response which might be in snake_case
+interface ApiTask {
   id: number;
   title: string;
   description: string;
   completed: boolean;
   created_at: string;
   updated_at: string;
+  priority?: string;
+  tags?: string[];
+  due_date?: string;
+  remind_at?: string;
+  recurrence_type?: string;
+  recurrence_interval?: number;
+  scheduled_time?: string;
+  category?: string;
 }
 
 const CompletedTasksPage = () => {
@@ -36,7 +45,23 @@ const CompletedTasksPage = () => {
         const response = await api.getCompletedTasks();
 
         if (response.success && response.data) {
-          setTasks(response.data as Task[]);
+          // Map API response to frontend Task type
+          const mappedTasks: Task[] = (response.data as ApiTask[]).map(t => ({
+            id: t.id.toString(),
+            title: t.title,
+            description: t.description,
+            completed: t.completed,
+            priority: (t.priority || 'medium') as 'low' | 'medium' | 'high',
+            tags: t.tags || [],
+            dueDate: t.due_date,
+            remindAt: t.remind_at,
+            recurrenceType: (t.recurrence_type || 'none') as 'none' | 'daily' | 'weekly' | 'monthly',
+            recurrenceInterval: t.recurrence_interval || 1,
+            createdAt: t.created_at,
+            scheduled_time: t.scheduled_time,
+            category: t.category
+          }));
+          setTasks(mappedTasks);
         } else {
           setError('Failed to load completed tasks');
         }
@@ -51,16 +76,20 @@ const CompletedTasksPage = () => {
     fetchTasks();
   }, [isAuthenticated, router]);
 
-  const toggleTaskCompletion = async (taskId: number) => {
+  const toggleTaskCompletion = async (taskId: string) => {
     try {
-      const response = await api.toggleTaskComplete(taskId);
+      // Backend expects number ID
+      const numId = parseInt(taskId);
+      if (isNaN(numId)) return;
+
+      const response = await api.toggleTaskComplete(numId);
       if (response.success && response.data) {
         // Remove the task from the completed list since it's now incomplete
         setTasks(prev => prev.filter(task => task.id !== taskId));
       }
     } catch (err) {
       console.error('Error updating task:', err);
-      alert('Failed to update task');
+      // alert('Failed to update task');
     }
   };
 
@@ -114,13 +143,8 @@ const CompletedTasksPage = () => {
             {tasks.map((task) => (
               <TaskCard
                 key={task.id}
-                task={{
-                  id: task.id.toString(),
-                  title: task.title,
-                  completed: task.completed,
-                  createdAt: task.created_at,
-                }}
-                onToggle={() => toggleTaskCompletion(task.id)}
+                task={task}
+                onToggle={toggleTaskCompletion}
               />
             ))}
           </div>

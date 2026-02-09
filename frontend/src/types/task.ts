@@ -11,4 +11,5 @@ export interface Task {
   recurrenceInterval: number;
   createdAt: string;
   scheduled_time?: string;
+  category?: string;
 }

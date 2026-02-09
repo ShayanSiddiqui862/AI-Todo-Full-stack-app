@@ -5,16 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '../../../../contexts/AuthContext';
 import GlassCard from '../../../../components/ui/GlassCard';
 import api from '../../../../lib/api';
-
-// Define the task type
-interface Task {
-  id: number;
-  title: string;
-  description: string;
-  completed: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import { Task } from '../../../../types/task';
 
 const TaskDetailPage = () => {
   const { id } = useParams();
@@ -33,10 +24,31 @@ const TaskDetailPage = () => {
     const fetchTask = async () => {
       try {
         setLoading(true);
+        // api.getTask might return the raw API response (snake_case)
+        // We might need to map it if api.getTask doesn't do it.
+        // Assuming api.getTask returns snake_case based on previous files.
+        // I should map it here too to be safe.
         const response = await api.getTask(Number(id));
 
         if (response.success && response.data) {
-          setTask(response.data as Task);
+           // We need a mapper here because api returns snake_case but Task is camelCase
+           const apiData = response.data as any; // Cast to any to access snake_case props
+           const mappedTask: Task = {
+            id: apiData.id.toString(),
+            title: apiData.title,
+            description: apiData.description,
+            completed: apiData.completed,
+            priority: (apiData.priority || 'medium') as 'low' | 'medium' | 'high',
+            tags: apiData.tags || [],
+            dueDate: apiData.due_date,
+            remindAt: apiData.remind_at,
+            recurrenceType: (apiData.recurrence_type || 'none') as 'none' | 'daily' | 'weekly' | 'monthly',
+            recurrenceInterval: apiData.recurrence_interval || 1,
+            createdAt: apiData.created_at,
+            scheduled_time: apiData.scheduled_time,
+            category: apiData.category
+           };
+          setTask(mappedTask);
         } else {
           setError('Failed to load task');
         }
@@ -55,13 +67,29 @@ const TaskDetailPage = () => {
     if (!task) return;
 
     try {
-      const response = await api.toggleTaskComplete(task.id);
+      const response = await api.toggleTaskComplete(Number(task.id)); // ID is string in Task, backend needs number
       if (response.success && response.data) {
-        setTask(response.data as Task);
+           const apiData = response.data as any;
+           const mappedTask: Task = {
+            id: apiData.id.toString(),
+            title: apiData.title,
+            description: apiData.description,
+            completed: apiData.completed,
+            priority: (apiData.priority || 'medium') as 'low' | 'medium' | 'high',
+            tags: apiData.tags || [],
+            dueDate: apiData.due_date,
+            remindAt: apiData.remind_at,
+            recurrenceType: (apiData.recurrence_type || 'none') as 'none' | 'daily' | 'weekly' | 'monthly',
+            recurrenceInterval: apiData.recurrence_interval || 1,
+            createdAt: apiData.created_at,
+            scheduled_time: apiData.scheduled_time,
+            category: apiData.category
+           };
+        setTask(mappedTask);
       }
     } catch (err) {
       console.error('Error updating task:', err);
-      alert('Failed to update task');
+      // alert('Failed to update task');
     }
   };
 
@@ -69,14 +97,14 @@ const TaskDetailPage = () => {
     if (!task || !window.confirm('Are you sure you want to delete this task?')) return;
 
     try {
-      const response = await api.deleteTask(task.id);
+      const response = await api.deleteTask(Number(task.id));
       if (response.success) {
         router.push('/dashboard');
-        alert('Task deleted successfully');
+        // alert('Task deleted successfully');
       }
     } catch (err) {
       console.error('Error deleting task:', err);
-      alert('Failed to delete task');
+      // alert('Failed to delete task');
     }
   };
 
@@ -176,13 +204,7 @@ const TaskDetailPage = () => {
           <div className="p-3 bg-black/20 rounded-lg">
             <p className="text-gray-400">Created</p>
             <p className="text-gray-300">
-              {new Date(task.created_at).toLocaleDateString()}
-            </p>
-          </div>
-          <div className="p-3 bg-black/20 rounded-lg">
-            <p className="text-gray-400">Updated</p>
-            <p className="text-gray-300">
-              {new Date(task.updated_at).toLocaleDateString()}
+              {new Date(task.createdAt).toLocaleDateString()}
             </p>
           </div>
         </div>
